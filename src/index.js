@@ -1,24 +1,17 @@
 const puppeteer = require('puppeteer');
-const {
-  question
-} = require('readline-sync');
 
-const {
-  toComment,
-  delay
-} = require('./credencials.json');
+const { sorteio } = require('./uri_s.json');
+const { followers } = require('./followers.json')
 
-// modulo de login
 const login = require('./modules/login.js');
-// modulo de redirecionamento para sorteio
 const goToDraw = require('./modules/goToDraw.js');
-// modulo para comentar
 const comment = require('./modules/comment');
 
-// url do sorteio
-const draw_url = question('> informe a url do sorteio: ');
+var list = followers;
 
-(async () => {
+async function init() {
+  var controlComments = 1;
+
   const browser = await puppeteer.launch({
     headless: false,
     defaultViewport: null,
@@ -26,12 +19,26 @@ const draw_url = question('> informe a url do sorteio: ');
   });
   const page = await browser.newPage();
 
-  // fazer o login
   await login(page);
-  // ir para pagina do sorteio
-  await goToDraw(page, draw_url);
+  await goToDraw(page, sorteio);
+  
   // começar a comentar
-  await comment(page, toComment, delay);
+  for (const follow of list) {
+    console.log(list.length)
+    list.shift();
+    
+    await comment(page, `@${follow.username}`);
+    console.log(`@${follow.username} - ${follow.full_name} marcado`);
+    await new Promise(resolve => setTimeout(resolve, 30000));
+    
+    controlComments++;
+    if (controlComments > 5) {
+      break;
+    }
+  }
 
-  // await browser.close();
-})();
+  await browser.close();
+  await init();
+};
+
+init();
